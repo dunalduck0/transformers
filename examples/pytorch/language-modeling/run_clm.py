@@ -200,7 +200,9 @@ def main():
         # let's parse it to get our arguments.
         model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     else:
-        model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+        # look_for_args_file: If true, will look for "run_clm_remote.args" and append its content to the command line args.
+        # https://github.com/huggingface/transformers/blob/master/src/transformers/hf_argparser.py
+        model_args, data_args, training_args = parser.parse_args_into_dataclasses(look_for_args_file=True)
 
     # Setup logging
     logging.basicConfig(
@@ -218,7 +220,7 @@ def main():
 
     # Log on each process the small summary:
     logger.warning(
-        f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}"
+        f"Process rank: {training_args.local_rank}, device: {training_args.device}, n_gpu: {training_args.n_gpu}, "
         + f"distributed training: {bool(training_args.local_rank != -1)}, 16-bits training: {training_args.fp16}"
     )
     logger.info(f"Training/evaluation parameters {training_args}")
@@ -326,6 +328,14 @@ def main():
             logger.info(f"Overriding config: {model_args.config_overrides}")
             config.update_from_string(model_args.config_overrides)
             logger.info(f"New config: {config}")
+
+    # MEIYANG
+    # Manual unset use_cache when gradient_checkpointing is set.
+    # When both set, many useless WARN messages would be produced.
+    if training_args.gradient_checkpointing:
+        config.update_from_string("use_cache=False")
+        logger.warning('Gradient_checkpointing is set, disable use_cache to avoid warning messages.\nuse_cache={}'.format(config.use_cache))
+    # END OF MEIYANG
 
     tokenizer_kwargs = {
         "cache_dir": model_args.cache_dir,
