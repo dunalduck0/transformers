@@ -16,6 +16,7 @@ import contextlib
 import json
 import math
 import os
+import time
 import warnings
 from dataclasses import asdict, dataclass, field
 from enum import Enum
@@ -1224,7 +1225,12 @@ class TrainingArguments:
                         torch.distributed.barrier()
                 yield
             finally:
-                if is_main_process:
+                if is_main_process:                
+                    if not local:
+                        # wait 10 seconds for cloud storage to ready
+                        logger.warning(f"{self.process_index}: {main_process_desc} wait 10 seconds to avoid cloud storage throttling")
+                        time.sleep(10)
+
                     # the wait is over
                     logger.debug(f"{self.process_index}: {main_process_desc} completed {desc}, releasing all replicas")
                     if is_torch_tpu_available():
