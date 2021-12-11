@@ -176,6 +176,9 @@ class DataTrainingArguments:
     keep_linebreaks: bool = field(
         default=True, metadata={"help": "Whether to keep line breaks when using TXT files or not."}
     )
+    exit_after_data_prepare: bool = field(
+        default=False, metadata={"help": "Exit program when data preparation is done."}
+    )
 
     def __post_init__(self):
         if self.dataset_name is None and self.train_file is None and self.validation_file is None:
@@ -398,6 +401,7 @@ def main():
             remove_columns=column_names,
             load_from_cache_file=not data_args.overwrite_cache,
             desc="Running tokenizer on dataset",
+            cache_file_names={k: os.path.join(model_args.cache_dir, f'{k}-tokenized') for k in raw_datasets},
         )
 
     if data_args.block_size is None:
@@ -447,7 +451,12 @@ def main():
             num_proc=data_args.preprocessing_num_workers,
             load_from_cache_file=not data_args.overwrite_cache,
             desc=f"Grouping texts in chunks of {block_size}",
+            cache_file_names={k: os.path.join(model_args.cache_dir, f'{k}-grouped') for k in raw_datasets},
         )
+
+    if data_args.exit_after_data_prepare:
+        logger.info("Data preparation is done. Exit.")
+        exit()
 
     if training_args.do_train:
         if "train" not in tokenized_datasets:
