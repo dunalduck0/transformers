@@ -20,6 +20,7 @@ import os
 import pickle
 import sys
 import types
+from tqdm import tqdm
 import warnings
 from abc import ABC, abstractmethod
 from collections import UserDict
@@ -1083,7 +1084,7 @@ class Pipeline(_ScikitCompat):
                 final_iterator = self.get_iterator(
                     inputs, num_workers, batch_size, preprocess_params, forward_params, postprocess_params
                 )
-                outputs = [output for output in final_iterator]
+                outputs = [output for output in tqdm(final_iterator)]
                 return outputs
             else:
                 return self.run_multi(inputs, preprocess_params, forward_params, postprocess_params)
