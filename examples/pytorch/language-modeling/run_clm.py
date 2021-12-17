@@ -287,7 +287,7 @@ def main():
             dataset_args["keep_linebreaks"] = data_args.keep_linebreaks
 
         # Use main_process_first instead of FileLocker to synchronize all processes.
-        with training_args.main_process_first(desc="dataset load data files"):
+        with training_args.main_process_first(desc="dataset load data files", local=False):
             raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=model_args.cache_dir, **dataset_args)
 
         # If no validation data is there, validation_split_percentage will be used to divide the dataset.
@@ -393,7 +393,7 @@ def main():
             )
         return output
 
-    with training_args.main_process_first(desc="dataset map tokenization"):
+    with training_args.main_process_first(desc="dataset map tokenization", local=False):
         tokenized_datasets = raw_datasets.map(
             tokenize_function,
             batched=True,
@@ -444,7 +444,7 @@ def main():
     # To speed up this part, we use multiprocessing. See the documentation of the map method for more information:
     # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.map
 
-    with training_args.main_process_first(desc="grouping texts together"):
+    with training_args.main_process_first(desc="grouping texts together", local=False):
         lm_datasets = tokenized_datasets.map(
             group_texts,
             batched=True,
