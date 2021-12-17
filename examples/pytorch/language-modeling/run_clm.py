@@ -286,7 +286,9 @@ def main():
             extension = "text"
             dataset_args["keep_linebreaks"] = data_args.keep_linebreaks
 
-        raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=model_args.cache_dir, **dataset_args)
+        # Use main_process_first instead of FileLocker to synchronize all processes.
+        with training_args.main_process_first(desc="dataset load data files"):
+            raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=model_args.cache_dir, **dataset_args)
 
         # If no validation data is there, validation_split_percentage will be used to divide the dataset.
         if "validation" not in raw_datasets.keys():

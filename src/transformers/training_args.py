@@ -1215,7 +1215,8 @@ class TrainingArguments:
             try:
                 if not is_main_process:
                     # tell all replicas to wait
-                    logger.debug(f"{self.process_index}: waiting for the {main_process_desc} to perform {desc}")
+                    # use warning instead of debug because some debug entries are missing from cloud
+                    logger.warning(f"{self.process_index}: waiting for the {main_process_desc} to perform {desc}")
                     if is_torch_tpu_available():
                         xm.rendezvous(desc)
                     elif is_sagemaker_dp_enabled():
@@ -1225,8 +1226,11 @@ class TrainingArguments:
                 yield
             finally:
                 if is_main_process:
+                    # wait for 30 seconds before release all processes
+                    from time import sleep
+                    sleep(30)
                     # the wait is over
-                    logger.debug(f"{self.process_index}: {main_process_desc} completed {desc}, releasing all replicas")
+                    logger.warning(f"{self.process_index}: {main_process_desc} completed {desc}, releasing all replicas")
                     if is_torch_tpu_available():
                         xm.rendezvous(desc)
                     elif is_sagemaker_dp_enabled():
