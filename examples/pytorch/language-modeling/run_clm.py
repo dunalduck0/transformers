@@ -176,9 +176,6 @@ class DataTrainingArguments:
     keep_linebreaks: bool = field(
         default=True, metadata={"help": "Whether to keep line breaks when using TXT files or not."}
     )
-    exit_after_data_prepare: bool = field(
-        default=False, metadata={"help": "Exit program when data preparation is done."}
-    )
 
     def __post_init__(self):
         if self.dataset_name is None and self.train_file is None and self.validation_file is None:
@@ -288,7 +285,10 @@ def main():
         if extension == "txt":
             extension = "text"
             dataset_args["keep_linebreaks"] = data_args.keep_linebreaks
-        raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=model_args.cache_dir, **dataset_args)
+
+        with training_args.main_process_first(desc="dataset load dataset"):
+            raw_datasets = load_dataset(extension, data_files=data_files, cache_dir=model_args.cache_dir, **dataset_args)
+
         # If no validation data is there, validation_split_percentage will be used to divide the dataset.
         if "validation" not in raw_datasets.keys():
             raw_datasets["validation"] = load_dataset(
@@ -332,13 +332,11 @@ def main():
             config.update_from_string(model_args.config_overrides)
             logger.info(f"New config: {config}")
 
-    # MEIYANG
     # Manual unset use_cache when gradient_checkpointing is set.
     # When both set, many useless WARN messages would be produced.
     if training_args.gradient_checkpointing:
         config.update_from_string("use_cache=False")
         logger.warning('Gradient_checkpointing is set, disable use_cache to avoid warning messages.\nuse_cache={}'.format(config.use_cache))
-    # END OF MEIYANG
 
     tokenizer_kwargs = {
         "cache_dir": model_args.cache_dir,
@@ -356,22 +354,22 @@ def main():
             "You can do it from another script, save it, and load it from here, using --tokenizer_name."
         )
 
-    if not data_args.exit_after_data_prepare:
-        if model_args.model_name_or_path:
-            model = AutoModelForCausalLM.from_pretrained(
-                model_args.model_name_or_path,
-                from_tf=bool(".ckpt" in model_args.model_name_or_path),
-                config=config,
-                cache_dir=model_args.cache_dir,
-                revision=model_args.model_revision,
-                use_auth_token=True if model_args.use_auth_token else None,
-            )
-        else:
-            model = AutoModelForCausalLM.from_config(config)
-            n_params = sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values())
-            logger.info(f"Training new model from scratch - Total size={n_params/2**20:.2f}M params")
+    # only load model for train or eval, not for data preparation
+    if model_args.model_name_or_path:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_args.model_name_or_path,
+            from_tf=bool(".ckpt" in model_args.model_name_or_path),
+            config=config,
+            cache_dir=model_args.cache_dir,
+            revision=model_args.model_revision,
+            use_auth_token=True if model_args.use_auth_token else None,
+        )
+    else:
+        model = AutoModelForCausalLM.from_config(config)
+        n_params = sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values())
+        logger.info(f"Training new model from scratch - Total size={n_params/2**20:.2f}M params")
 
-        model.resize_token_embeddings(len(tokenizer))
+    model.resize_token_embeddings(len(tokenizer))
 
     # Preprocessing the datasets.
     # First we tokenize all the texts.
@@ -454,10 +452,6 @@ def main():
             desc=f"Grouping texts in chunks of {block_size}",
             cache_file_names={k: os.path.join(model_args.cache_dir, f'{k}-grouped') for k in raw_datasets},
         )
-
-    if data_args.exit_after_data_prepare:
-        logger.info("Data preparation is done. Exit.")
-        exit()
 
     if training_args.do_train:
         if "train" not in tokenized_datasets:
