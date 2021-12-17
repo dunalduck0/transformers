@@ -1213,7 +1213,6 @@ class TrainingArguments:
                 main_process_desc = "main process"
 
             try:
-                logger.debug(f"{self.process_index}: entering main_process_first() to perform {desc}")
                 if not is_main_process:
                     # tell all replicas to wait
                     logger.debug(f"{self.process_index}: waiting for the {main_process_desc} to perform {desc}")
@@ -1225,11 +1224,7 @@ class TrainingArguments:
                         torch.distributed.barrier()
                 yield
             finally:
-                logger.debug(f"{self.process_index}: leaving main_process_first() to perform {desc}")
                 if is_main_process:
-                    logger.debug(f"{self.process_index}: idle for 1 minute")
-                    from time import sleep
-                    sleep(60)
                     # the wait is over
                     logger.debug(f"{self.process_index}: {main_process_desc} completed {desc}, releasing all replicas")
                     if is_torch_tpu_available():
