@@ -2627,6 +2627,9 @@ class Trainer:
         dataset: Optional[Union[str, List[str]]] = None,
         dataset_args: Optional[Union[str, List[str]]] = None,
     ):
+        if not self.is_world_process_zero():
+            return
+
         training_summary = TrainingSummary.from_trainer(
             self,
             language=language,
