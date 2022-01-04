@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Auto Model class. """
+""" Auto Model class."""
 
 import warnings
 from collections import OrderedDict
@@ -218,6 +218,7 @@ MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = OrderedDict(
         ("transfo-xl", "TransfoXLLMHeadModel"),
         ("xlnet", "XLNetLMHeadModel"),
         ("xlm", "XLMWithLMHeadModel"),
+        ("electra", "ElectraForCausalLM"),
         ("ctrl", "CTRLLMHeadModel"),
         ("reformer", "ReformerModelWithLMHead"),
         ("bert-generation", "BertGenerationDecoder"),
@@ -546,6 +547,7 @@ MODEL_FOR_AUDIO_FRAME_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
         # Model for Audio Classification mapping
         ("wav2vec2", "Wav2Vec2ForAudioFrameClassification"),
         ("unispeech-sat", "UniSpeechSatForAudioFrameClassification"),
+        ("wavlm", "WavLMForAudioFrameClassification"),
     ]
 )
 
@@ -554,6 +556,7 @@ MODEL_FOR_AUDIO_XVECTOR_MAPPING_NAMES = OrderedDict(
         # Model for Audio Classification mapping
         ("wav2vec2", "Wav2Vec2ForXVector"),
         ("unispeech-sat", "UniSpeechSatForXVector"),
+        ("wavlm", "WavLMForXVector"),
     ]
 )
 
