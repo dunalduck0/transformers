@@ -246,7 +246,7 @@ class UniSpeechSatModelTester:
         model.train()
 
         # freeze feature encoder
-        model.freeze_feature_extractor()
+        model.freeze_feature_encoder()
 
         input_values = input_values[:3]
 
@@ -863,10 +863,10 @@ class UniSpeechSatModelIntegrationTest(unittest.TestCase):
         self.assertTrue(torch.allclose(outputs.last_hidden_state[:, :2, -2:], expected_hidden_states_slice, atol=1e-3))
 
     def test_inference_diarization(self):
-        model = UniSpeechSatForAudioFrameClassification.from_pretrained("anton-l/unispeech-sat-base-plus-sd").to(
+        model = UniSpeechSatForAudioFrameClassification.from_pretrained("microsoft/unispeech-sat-base-plus-sd").to(
             torch_device
         )
-        processor = Wav2Vec2FeatureExtractor.from_pretrained("anton-l/unispeech-sat-base-plus-sd")
+        processor = Wav2Vec2FeatureExtractor.from_pretrained("microsoft/unispeech-sat-base-plus-sd")
         input_data = self._load_superb("sd", 4)
         inputs = processor(input_data["speech"], return_tensors="pt", padding=True, sampling_rate=16_000)
 
@@ -889,11 +889,12 @@ class UniSpeechSatModelIntegrationTest(unittest.TestCase):
         )
         self.assertEqual(labels[0, :, 0].sum(), 270)
         self.assertEqual(labels[0, :, 1].sum(), 647)
-        self.assertTrue(torch.allclose(outputs.logits[:, :4], expected_logits, atol=1e-3))
+        # TODO: update the tolerance after the CI moves to torch 1.10
+        self.assertTrue(torch.allclose(outputs.logits[:, :4], expected_logits, atol=1e-2))
 
     def test_inference_speaker_verification(self):
-        model = UniSpeechSatForXVector.from_pretrained("anton-l/unispeech-sat-base-plus-sv").to(torch_device)
-        processor = Wav2Vec2FeatureExtractor.from_pretrained("anton-l/unispeech-sat-base-plus-sv")
+        model = UniSpeechSatForXVector.from_pretrained("microsoft/unispeech-sat-base-plus-sv").to(torch_device)
+        processor = Wav2Vec2FeatureExtractor.from_pretrained("microsoft/unispeech-sat-base-plus-sv")
         input_data = self._load_superb("si", 4)
 
         inputs = processor(input_data["speech"], return_tensors="pt", padding=True)
@@ -913,4 +914,5 @@ class UniSpeechSatModelIntegrationTest(unittest.TestCase):
         # id10002 vs id10004
         self.assertAlmostEqual(cosine_sim(embeddings[2], embeddings[3]).item(), 0.5616, 3)
 
-        self.assertAlmostEqual(outputs.loss.item(), 18.5925, 3)
+        # TODO: update the tolerance after the CI moves to torch 1.10
+        self.assertAlmostEqual(outputs.loss.item(), 18.5925, 2)
