@@ -422,10 +422,26 @@ def main():
             cache_file_names={k: os.path.join(model_args.cache_dir, f'{k}-tokenized') for k in raw_datasets},
         )
 
+    def create_labels(input_ids):
+        # labels for prompt should be ignored
+        beg = input_ids.index(tokenizer.sep_token_id) + 1 if tokenizer.sep_token_id in input_ids else 0
+        # labels for padding should be ignored
+        end = input_ids.index(tokenizer.pad_token_id) if tokenizer.pad_token_id in input_ids else len(input_ids)
+        '''
+        src/transformers/models/gptj/modeling_gptj.py
+        All labels set to -100 are ignored (masked),
+        '''
+        labels = [-100] * len(input_ids)
+        labels[beg:end] = input_ids[beg:end]
+        return labels
+    
+
     def select_texts(examples):
         # Select samples of matched sizes, after padding.
         result = {k: list(filter(lambda x: len(x) == block_size, examples[k])) for k in examples.keys()}
-        result["labels"] = result["input_ids"].copy()
+        result['labels'] = []
+        for example in result['input_ids']:
+            result['labels'].append(create_labels(example))
         return result
 
     # Main data processing function that will concatenate all texts from our dataset and generate chunks of block_size.
